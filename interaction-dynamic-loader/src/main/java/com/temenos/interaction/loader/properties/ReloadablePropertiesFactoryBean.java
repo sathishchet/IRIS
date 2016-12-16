@@ -28,11 +28,15 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.config.PropertiesFactoryBean;
@@ -65,6 +69,9 @@ public class ReloadablePropertiesFactoryBean extends PropertiesFactoryBean imple
 	private List<Resource> resourcesPath;
 	private File lastChangeFile;
 	private XmlModificationNotifier xmlNotifier;
+	private String customPath;
+	private String customFile;
+	private String customMapping;
 
 	public void setListeners(List<ReloadablePropertiesListener<Resource>> listeners) {
 	    preListeners.addAll(listeners);
@@ -155,6 +162,36 @@ public class ReloadablePropertiesFactoryBean extends PropertiesFactoryBean imple
     		    logger.info("The following index file will be used for refreshing resources: " + irisCacheIndexFile.getAbsolutePath());
     		}
 		}
+		
+        // Check if Custom Path is available for look-up
+        if (customPath != null && customFile != null) {
+            File destFile = null;
+            String appName = ctx.getApplicationName();
+            destFile = Paths.get(customPath, appName, customFile).toAbsolutePath().toFile();
+            //Prioritize cross app mapping 
+            if (customMapping != null) {
+                Path overrideMapping = Paths.get(customPath, customMapping).toAbsolutePath();
+                if (Files.exists(overrideMapping) && overrideMapping.toString().endsWith(".properties")) {
+                    Properties prop = new Properties();
+                    prop.load(Files.newInputStream(overrideMapping));
+                    //currently using one-to-one mapping
+                    String appCross = (String) prop.get(appName.substring(1));
+                    if(StringUtils.isNotEmpty(appCross)){
+                        destFile = Paths.get(customPath, appCross, customFile).toAbsolutePath().toFile();
+                    }
+                }
+            }
+            if(destFile != null ){
+                lastChangeFile = destFile;
+                logger.info("Custom Path for refreshing resources: " + destFile.getAbsolutePath() + " , App: "
+                        + appName);
+                //Force create to listen first time changes after application start
+                if(!destFile.exists()){
+                    destFile.getParentFile().mkdirs();
+                    destFile.createNewFile();
+                }
+            }
+        }
 
 		return ret;
 	}
@@ -266,7 +303,7 @@ public class ReloadablePropertiesFactoryBean extends PropertiesFactoryBean imple
 		refreshResources(changedPaths);
 		
 	    if (!changedPaths.isEmpty()) {
-	        logger.info(changedPaths.size() + " resources reloaded in " + (System.currentTimeMillis() - initTimestamp) + " ms.");
+	        logger.info("App: "+ctx.getApplicationName()+" => "+changedPaths.size() + " resources reloaded in " + (System.currentTimeMillis() - initTimestamp) + " ms.");
 	    }
 	}
 	
@@ -313,6 +350,30 @@ public class ReloadablePropertiesFactoryBean extends PropertiesFactoryBean imple
 		}
 	}
 
+    public String getCustomPath() {
+        return customPath;
+    }
+
+    public void setCustomPath(String customPath) {
+        this.customPath = customPath;
+    }
+    
+    public String getCustomFile() {
+        return customFile;
+    }
+
+    public void setCustomFile(String customFile) {
+        this.customFile = customFile;
+    }
+
+    public String getCustomMapping() {
+        return customMapping;
+    }
+
+    public void setCustomMapping(String customMapping) {
+        this.customMapping = customMapping;
+    }
+
     class ReloadablePropertiesImpl extends ReloadablePropertiesBase implements ReconfigurableBean {
 		private static final long serialVersionUID = -3401718333944329073L;
 
@@ -326,4 +387,5 @@ public class ReloadablePropertiesFactoryBean extends PropertiesFactoryBean imple
 	public void setApplicationContext(ApplicationContext ctx) throws BeansException {
 		this.ctx = ctx;
 	}
+	
 }
