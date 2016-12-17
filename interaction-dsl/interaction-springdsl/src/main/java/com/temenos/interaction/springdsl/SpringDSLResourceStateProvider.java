@@ -23,6 +23,7 @@ package com.temenos.interaction.springdsl;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -403,23 +404,43 @@ public class SpringDSLResourceStateProvider implements ResourceStateProvider, Dy
 				String description = "classpath:" + beanXml;
 				attempts.add(description);
 				result = new ClassPathXmlApplicationContext(new String[] {beanXml});
-				if ( result != null ) foundFile = description;
+                foundFile = description;
 			} else {
 				// Try and load the resource from the file system as a resource directories has been specified
 				for(String directoryPath : configLoader.getIrisConfigDirPaths()) {
-					Path pathToFile = Paths.get(directoryPath, beanXml);
-					String pathToFileString = pathToFile.toString();
-					attempts.add(pathToFileString);
-					if(Files.exists(pathToFile)) {
-						foundFile = pathToFileString;
-						result = new FileSystemXmlApplicationContext( new String[] { pathToFileString });
-						break;
-					}
+					Path filePath = Paths.get(directoryPath, beanXml);
+					result = createApplicationContext(new File(filePath.toString()));
+					if (result != null) {
+                        break;
+                    }
 				}
 			}
 			return result;
 		}
-	}
+
+        private ApplicationContext createApplicationContext(File file) {
+		    URL fileURL = resolveFileURL(file);
+		    if (fileURL == null) {
+		        return null;
+            }
+            attempts.add(fileURL.toString());
+            if (file.exists()) {
+                foundFile = fileURL.toString();
+                return new FileSystemXmlApplicationContext(new String[] { fileURL.toString() });
+            }
+            return null;
+        }
+
+		private URL resolveFileURL(File file) {
+            try {
+                return file.toURI().toURL();
+            } catch (MalformedURLException e) {
+                logger.error("Failed to resolve URL for file: " + file.getAbsolutePath(), e);
+                return null;
+            }
+        }
+
+    }
 
 
     @Override
@@ -458,4 +479,5 @@ public class SpringDSLResourceStateProvider implements ResourceStateProvider, Dy
         
         return resourceStateId;
     }
+
 }

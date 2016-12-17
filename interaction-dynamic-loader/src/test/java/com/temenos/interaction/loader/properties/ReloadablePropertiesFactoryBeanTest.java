@@ -23,6 +23,8 @@ package com.temenos.interaction.loader.properties;
 
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -44,6 +46,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 
 import com.temenos.interaction.core.loader.FileEvent;
+import com.temenos.interaction.loader.properties.ReloadablePropertiesFactoryBean.ChangeIndexFileProvider;
 import com.temenos.interaction.loader.xml.resource.notification.XmlModificationNotifier;
 
 public class ReloadablePropertiesFactoryBeanTest {
@@ -252,6 +255,40 @@ public class ReloadablePropertiesFactoryBeanTest {
         verify(spy).execute(any(FileEvent.class));
         // TODO: we should verify that the properties are reloaded, but currently
         // there's no way to do this...
+    }
+    
+    @Test
+    public void testReloadCacheFileUtil(){
+        ReloadablePropertiesFactoryBean rp = new ReloadablePropertiesFactoryBean();
+        
+        //check location returned for application (app-test1-iris)
+        ChangeIndexFileProvider changeLocationPresent = rp.new ChangeIndexFileProvider(
+                "app-test1-iris=/app/test1/iris/lastChange,app-test2-iris=/app/test2/iris/lastChange","app-test1-iris");
+        assertNotNull(changeLocationPresent.getChangeIndexFile());
+        assertTrue(changeLocationPresent.getChangeIndexFile().toString().endsWith(Paths.get("/app/test1/iris/lastChange").toString()));
+        
+        //check null returned as location for the application not provided in configuration (app-test3-iris)
+        ChangeIndexFileProvider changeLocationAbsent = rp.new ChangeIndexFileProvider(
+                "app-test1-iris=/app/test1/iris/lastChange,app-test2-iris=/app/test2/iris/lastChange","app-test3-iris");
+        assertNull(changeLocationAbsent.getChangeIndexFile());
+        
+        //check default location is provided if the config is missing
+        ChangeIndexFileProvider changeLocationDefault = rp.new ChangeIndexFileProvider(
+                "\\workspace\\test-app\\lastChange,app-test2-iris=/app/test2/iris/lastChange","app-test3-iris");
+        assertNotNull(changeLocationDefault.getChangeIndexFile());
+        assertTrue(changeLocationDefault.getChangeIndexFile().toString().endsWith(Paths.get("workspace\\test-app\\lastChange").toString()));
+        
+        //OLD: check default location alone is provided
+        ChangeIndexFileProvider changeLocationOnlyDefault = rp.new ChangeIndexFileProvider(
+                "\\workspace\\test-app\\lastChange","app-test3-iris");
+        assertNotNull(changeLocationOnlyDefault.getChangeIndexFile());
+        assertTrue(changeLocationOnlyDefault.getChangeIndexFile().toString().endsWith(Paths.get("workspace\\test-app\\lastChange").toString()));
+        
+        //check default returned if the config is having invalid value
+        ChangeIndexFileProvider changeLocationInvalid = rp.new ChangeIndexFileProvider(
+                "\\workspace\\test-app\\lastChange,app-test2-iris= ","app-test2-iris");
+        assertNotNull(changeLocationInvalid.getChangeIndexFile());
+        assertTrue(changeLocationInvalid.getChangeIndexFile().toString().endsWith(Paths.get("workspace\\test-app\\lastChange").toString()));
     }
 
 }

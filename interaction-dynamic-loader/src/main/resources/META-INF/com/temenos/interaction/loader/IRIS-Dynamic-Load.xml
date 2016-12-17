@@ -75,7 +75,8 @@
 				<ref bean="propertiesModificationListener" />	
 			</list>		
 		</property>
- 		<property name="xmlNotifier" ref="irisXmlModificationNotifier"/>  
+ 		<property name="xmlNotifier" ref="irisXmlModificationNotifier"/>
+ 		<property name="changeIndexLocations" value="#{systemProperties['iris.cache.index.file']}"/> 
 	</bean>
 	
   	<!-- regularly reload property files. -->

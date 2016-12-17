@@ -24,15 +24,20 @@ package com.temenos.interaction.loader.properties;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOError;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.config.PropertiesFactoryBean;
@@ -65,6 +70,7 @@ public class ReloadablePropertiesFactoryBean extends PropertiesFactoryBean imple
 	private List<Resource> resourcesPath;
 	private File lastChangeFile;
 	private XmlModificationNotifier xmlNotifier;
+	private String changeIndexLocations;
 
 	public void setListeners(List<ReloadablePropertiesListener<Resource>> listeners) {
 	    preListeners.addAll(listeners);
@@ -83,7 +89,15 @@ public class ReloadablePropertiesFactoryBean extends PropertiesFactoryBean imple
 	    return this.properties;
 	}
 
-	@Override
+    public String getChangeIndexLocations() {
+        return changeIndexLocations;
+    }
+
+    public void setChangeIndexLocations(String changeIndexLocations) {
+        this.changeIndexLocations = changeIndexLocations;
+    }
+
+    @Override
 	protected Object createInstance() throws IOException {
 		// would like to uninherit from AbstractFactoryBean (but it's final!)
 		if (!isSingleton())
@@ -145,14 +159,13 @@ public class ReloadablePropertiesFactoryBean extends PropertiesFactoryBean imple
 			}
 		}
 		
-		String irisCacheIndexFileStr = System.getProperty("iris.cache.index.file");				
-		
-		if(irisCacheIndexFileStr != null) {		    
-    		File irisCacheIndexFile = new File(irisCacheIndexFileStr).getAbsoluteFile();
+		if(changeIndexLocations != null) {		  
+		   
+    		File irisChangeIndexFile = new ChangeIndexFileProvider(changeIndexLocations, ctx.getApplicationName()).getChangeIndexFile();
     		
-    		if(irisCacheIndexFile.exists()) {
-    		    lastChangeFile = irisCacheIndexFile;
-    		    logger.info("The following index file will be used for refreshing resources: " + irisCacheIndexFile.getAbsolutePath());
+    		if(irisChangeIndexFile != null && irisChangeIndexFile.exists()) {
+    		    lastChangeFile = irisChangeIndexFile;
+    		    logger.info("The following index file will be used for refreshing resources: " + irisChangeIndexFile.getAbsolutePath());
     		}
 		}
 
@@ -321,6 +334,79 @@ public class ReloadablePropertiesFactoryBean extends PropertiesFactoryBean imple
 			ReloadablePropertiesFactoryBean.this.reload(false);
 		}
 	}
+    
+    /**
+     * ChangeIndexFileProvider to get the File which track changes added to models at run-time
+     *
+     */
+    class ChangeIndexFileProvider {
+        private Map<String, String> props = new HashMap<String, String>();
+        private String appName;
+        
+        /**
+         * <p>instantiate's ChangeIndexFileProvider with args fileLocations and application-name</p>
+         * <p>
+         * fileLocations sample values
+         * "app-iris=/workspace/app-iris/lastChange,app2-iris=/workspace/app2-iris/lastChange,/default/lastChange"
+         * </p> 
+         * @param fileLocations application name and its change file location
+         * @param appName context Application Name
+         */
+        public ChangeIndexFileProvider(String fileLocations, String appName) {
+            this.appName = appName;
+            if (StringUtils.isNotBlank(fileLocations)) {
+                for (String line : StringUtils.split(fileLocations, ',')) {
+                    String[] prop = line.split("=");
+                    if (prop.length == 1) {
+                        logger.info("Default location provided: " + line);
+                        props.put(null, prop[0]);
+                        continue;
+                    } else if (prop.length != 2) {
+                        logger.info("Invalid location provided: " + line);
+                        continue;
+                    }
+                    props.put(prop[0], prop[1]);
+                }
+            }
+        }
+
+        /**
+         * Returns the {@link File} associated for the current application from the change locations provided
+         * and returns <code>null</code> if not provided
+         * @return change index file for the application
+         */
+        public File getChangeIndexFile() {
+            appName = removeSlash(appName);
+            //Check if app-name and corresponding location is provided, if not return default location present
+            if (StringUtils.isBlank(appName) || 
+                    StringUtils.isBlank(props.get(appName)) ? StringUtils.isBlank(props.get(appName = null)) : false)
+                return null;
+            String filePath = props.get(appName);
+            File targetFile = null;
+            try{
+                targetFile = Paths.get(filePath).toAbsolutePath().toFile();
+            }catch(IOError | Exception e){
+                logger.warn("Unexpected failure when getting dynamic path ", e);
+            }
+            return targetFile;
+        }
+        
+        /**
+         * <p>Remove slash if present and returns application name.</p>
+         * <pre> 
+         * removeSlash("\app-name") = "app-name"
+         * removeSlash("app-name") = "app-name"
+         * </pre>
+         * @param appName application name with slash
+         * @return application name
+         */
+        private String removeSlash(String appName){
+            if(StringUtils.isNotEmpty(appName) && !StringUtils.isAlphanumeric(String.valueOf(appName.charAt(0)))){
+                appName=appName.substring(1);
+            }
+            return appName;
+        }
+    }
 
 	@Override
 	public void setApplicationContext(ApplicationContext ctx) throws BeansException {
