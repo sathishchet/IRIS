@@ -1,5 +1,5 @@
 language: java
-sudo: false
+sudo: true
 before_script:
   - echo "MAVEN_OPTS='-Xms512m -Xmx1024m -XX:PermSize=256m -XX:MaxPermSize=512m'" > ~/.mavenrc
 script: mvn clean install
