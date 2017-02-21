@@ -1,8 +1,7 @@
 language: java
 sudo: true
 before_script:
-  - echo "MAVEN_OPTS='-Xms512m -Xmx1024m -XX:PermSize=256m -XX:MaxPermSize=512m'" > ~/.mavenrc
-script: mvn clean
-install: travis_wait 30 mvn install
+  - echo "MAVEN_OPTS='-Xms4g -Xmx6g -XX:PermSize=2g -XX:MaxPermSize=2g'" > ~/.mavenrc
+script: travis_wait 30 mvn clean install
 jdk:
     - oraclejdk7
