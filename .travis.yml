@@ -3,7 +3,7 @@ sudo: true
 install: true
 script:
   - MAVEN_SKIP_RC=true
-  - MAVEN_OPTS='-Xms2g -Xmx4g -XX:PermSize=1g -XX:MaxPermSize=2g -Dorg.slf4j.simpleLogger.defaultLogLevel=off'
-  - mvn clean install
+  - MAVEN_OPTS='-Xms2g -Xmx4g -XX:PermSize=1g -XX:MaxPermSize=2g'
+  - mvn clean install -Dmaven.javadoc.skip=true -Dorg.slf4j.simpleLogger.defaultLogLevel=off
 jdk:
     - oraclejdk7
