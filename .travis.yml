@@ -2,7 +2,6 @@ language: java
 sudo: true
 before_install:
   - echo "MAVEN_OPTS='-Xms2g -Xmx4g -XX:PermSize=1g -XX:MaxPermSize=2g -Dorg.slf4j.simpleLogger.defaultLogLevel=off'" > ~/.mavenrc
-install: travis_wait 30 mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -q
-script: travis_wait 40 mvn clean install -q
+install: travis_wait 40 mvn clean install -Dmaven.javadoc.skip=true -B -V
 jdk:
     - oraclejdk7
