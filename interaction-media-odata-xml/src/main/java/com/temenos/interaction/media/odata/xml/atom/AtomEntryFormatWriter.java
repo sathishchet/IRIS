@@ -25,6 +25,7 @@ package com.temenos.interaction.media.odata.xml.atom;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -146,6 +147,7 @@ public class AtomEntryFormatWriter extends XmlFormatWriter implements FormatWrit
 	    if (entityLinks != null) {
 	      if (isResponse) {
 	        // the producer has populated the link collection, we just write what he gave us.
+	        Collection<Link> linkIdUsed = new HashSet<>();
 	        for (OLink link : entityLinks) {
 	          String type = (link.isCollection())
 	              ? atom_feed_content_type
@@ -165,7 +167,7 @@ public class AtomEntryFormatWriter extends XmlFormatWriter implements FormatWrit
 	                href, baseUri, updated, isResponse);
 	            writer.endElement("link");
 	          } else {
-	        	  writeLink(writer, link, type, href, linkId);
+	              writeLink(writer, link, type, href, linkId, linkIdUsed);
 	          }
 	        }
 	      } else {
@@ -229,7 +231,7 @@ public class AtomEntryFormatWriter extends XmlFormatWriter implements FormatWrit
   /*
    * helper function to write customized and generic link
    */
-  private void writeLink(XMLWriter2 writer, OLink olink, String type, String href, Collection<Link> linkId) {
+  private void writeLink(XMLWriter2 writer, OLink olink, String type, String href, Collection<Link> linkId, Collection<Link> linkIdUsed) {
 	// deferred link.
 	  String rel = olink.getRelation();
 	  String title = olink.getTitle();
@@ -238,8 +240,9 @@ public class AtomEntryFormatWriter extends XmlFormatWriter implements FormatWrit
 		  Iterator<Link> iterator = linkId.iterator();
 		  while(iterator.hasNext()) {
 			  Link tempLink = iterator.next();
-			  if(tempLink.getHref().endsWith(href)) {
+			  if(tempLink.getHref().endsWith(href) && !linkIdUsed.contains(tempLink)) {
 				  id = tempLink.getLinkId();
+				  linkIdUsed.add(tempLink);
 				  break;
 			  }
 		  }

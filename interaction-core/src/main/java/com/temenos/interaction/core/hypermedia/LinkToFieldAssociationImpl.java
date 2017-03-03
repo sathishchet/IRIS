@@ -67,13 +67,6 @@ public class LinkToFieldAssociationImpl implements LinkToFieldAssociation {
             logger.error("Cannot generate links for transition " + transition + ". Target field name cannot be null if we have collection parameters or a collection dymamic resource.");
             return false;
         }
-
-        String targetFieldParent = getParentNameOfCollectionValue(targetFieldName);
-        if (hasCollectionDynamicResourceName && targetFieldParent != null && !StringUtils.equals(targetFieldParent, getFirstParentNameOfDynamicResource())){
-            logger.error("Cannot generate links for transition " + transition + ". Parent of target field name and dynamic resource must be same.");
-            return false;
-        }
-
         return true;
     }
 

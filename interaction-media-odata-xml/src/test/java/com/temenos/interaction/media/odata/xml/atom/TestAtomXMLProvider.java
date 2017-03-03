@@ -1010,6 +1010,8 @@ public class TestAtomXMLProvider {
 				+ "<updated>2014-02-20T08:56:32Z</updated>"
 				+ "<author><name /></author>"
 				+ "<link rel=\"self\" title=\"Link to entity\" href=\"Flights('1')\" />"
+				+ "<link rel=\"http://schemas.microsoft.com/ado/2007/08/dataservices/related/FlightView\" type=\"application/atom+xml;type=entry\" title=\"Link to entity with id 1\" href=\"Flights('1')/view\" id=\"1\" />"
+		        + "<link rel=\"http://schemas.microsoft.com/ado/2007/08/dataservices/related/FlightView\" type=\"application/atom+xml;type=entry\" title=\"Link to entity with id 2\" href=\"Flights('1')/view\" id=\"2\" />"
 				+ "<category term=\"FlightModelModel.Flight\" scheme=\"http://schemas.microsoft.com/ado/2007/08/dataservices/scheme\" />"
 				+ "<content type=\"application/xml\">"
 				+ "<m:properties><d:id>1</d:id><d:flight>EI218</d:flight></m:properties></content>"
@@ -1031,8 +1033,11 @@ public class TestAtomXMLProvider {
 		ResourceState initial = new ResourceState("ServiceDocument", "ServiceDocument", serviceDocActions, "/");
 		ResourceState flights = new CollectionResourceState("Flight", "Flights", flightsActions, "/Flights");
 		ResourceState flight = new ResourceState("Flight", "Flight", flightActions, "/Flights('{id}')");
-		flights.addTransition(new Transition.Builder().method(HttpMethod.GET).target(flight).label("Link to entity").build());
-		initial.addTransition(new Transition.Builder().method(HttpMethod.GET)
+		ResourceState flightView = new ResourceState("FlightView", "FlightView", flightActions, "/Flights('{id}')/view");
+        flights.addTransition(new Transition.Builder().method(HttpMethod.GET).target(flight).label("Link to entity").build());
+        flights.addTransition(new Transition.Builder().method(HttpMethod.GET).target(flightView).label("Link to entity with id 1").linkId("1").build());
+        flights.addTransition(new Transition.Builder().method(HttpMethod.GET).target(flightView).label("Link to entity with id 2").linkId("2").build());
+        initial.addTransition(new Transition.Builder().method(HttpMethod.GET)
 				.target(flights)
 				.build());
 		ResourceStateMachine rsm = new ResourceStateMachine(initial, transformer);
@@ -1101,7 +1106,6 @@ public class TestAtomXMLProvider {
         // Create rsm
         ResourceStateMachine rsm = createCollectionToItemRSM(new OEntityTransformer());
         ResourceState flights = rsm.getResourceStateByName("Flights");
-        ResourceState flight = rsm.getResourceStateByName("Flight");
 
 		// Build up some entities
 		List<EntityResource<OEntity>> oentities = new ArrayList<EntityResource<OEntity>>();
@@ -1109,7 +1113,9 @@ public class TestAtomXMLProvider {
 		        "07u1PAxpJ7RGGblAB8FicpJF18wtzngF71WGQUMlABE=");
 		List<Link> links = new ArrayList<Link>();
 		MultivaluedMap<String, String> pathParameters = new MultivaluedMapImpl<String>();
-		links.add(createLink(rsm, flights.getTransition(flight), er.getEntity(), pathParameters, null));
+		for (Transition transition : flights.getTransitions()) {
+		    links.add(createLink(rsm, transition, er.getEntity(), pathParameters, null));
+        }
 		er.setLinks(links);
 		oentities.add(er);
 		// Create collection resource
