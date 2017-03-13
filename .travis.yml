@@ -1,0 +1,16 @@
+# You talkin' to me
+language: java
+sudo: true
+install: true
+before_script:
+  - echo "MAVEN_OPTS='-Xms512m -Xmx1024m -XX:PermSize=512m -XX:MaxPermSize=1024m'" > ~/.mavenrc
+script:
+  - mvn clean -B -V
+  # Travis 4MB log limit, hence secondary log is redirected to sink
+  - mvn install -Dmaven.javadoc.skip=true -B -Dorg.slf4j.simpleLogger.defaultLogLevel=off 2>/dev/null
+jdk:
+    - oraclejdk7
+braches:
+    only:
+        - master
+        - 0.13.x

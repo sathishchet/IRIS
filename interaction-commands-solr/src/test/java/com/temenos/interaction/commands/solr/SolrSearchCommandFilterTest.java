@@ -40,6 +40,8 @@ import javax.ws.rs.core.UriInfo;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import com.temenos.interaction.authorization.command.AuthorizationAttributes;
 import com.temenos.interaction.core.MultivaluedMapImpl;
@@ -51,8 +53,6 @@ import com.temenos.interaction.core.entity.Entity;
 import com.temenos.interaction.core.entity.Metadata;
 import com.temenos.interaction.core.hypermedia.ResourceState;
 import com.temenos.interaction.core.resource.CollectionResource;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 
 public class SolrSearchCommandFilterTest extends AbstractSolrTest {
@@ -94,7 +94,7 @@ public class SolrSearchCommandFilterTest extends AbstractSolrTest {
 		queryParams.add("$filter", "id eq 1111");
 		try {
     		InteractionCommand.Result result = command.execute(ctx, entity1SolrServer);
-    		assertEquals(Result.SUCCESS, result);
+    		assertEquals(Result.FAILURE, result);
 		} catch (InteractionException e) {
 		    fail("InteractionException : " + e.getHttpStatus().toString() + " - " + e.getMessage());
 		}

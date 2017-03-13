@@ -21,12 +21,12 @@ package com.temenos.interaction.core.command;
  * #L%
  */
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
-import static org.mockito.Matchers.startsWith;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.startsWith;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 
@@ -68,7 +68,7 @@ public class TestChainingCommandController {
 
 	@Test
 	public void testFetchCommand() {
-		assertThat(this.controller.fetchCommand("testCommand1"), notNullValue());
+		assertThat(this.controller.fetchCommand("make-it-fail"), notNullValue());
 	}
 	
 	@Test
