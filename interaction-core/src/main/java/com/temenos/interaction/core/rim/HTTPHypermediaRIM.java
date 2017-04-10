@@ -361,7 +361,9 @@ public class HTTPHypermediaRIM implements HTTPResourceInteractionModel, Expressi
                         .setWorkflowCommandBuilder(getHypermediaEngine().getWorkflowCommandBuilder(WorkflowType.TRANSITION))
                         .setExpressionEvaluator(this);
                 if(autoTransitioner.transition().isSuccessful()) {
+                    Map<String,String> responseHeaders = ctx.getResponseHeaders();
                     ctx = autoTransitioner.getOutcome().getInteractionContext();
+                    ctx.getResponseHeaders().putAll(responseHeaders);
                     status = determineStatus(headers, event, ctx, result);
                 }
             }
